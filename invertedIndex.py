@@ -1,52 +1,69 @@
 import multiprocessing as mp
 from pathlib import Path
-import os
 import re
 import time
 
 
 class InvertedIndex:
     def __init__(self):
+        self.smallIndexes = None
         self.index = dict()
 
-    def createIndex(self, path='data', threads_num=4):
-        processes = []
+    def createIndex(self, path='data', threads_num=1):
         pathList = list(Path(path).glob('**/*.txt')) # Рекурсивно проходимо по всіх текстових файлах і робимо з них список
-        fileNum = len(pathList)
+        fileNum = len(pathList) # Рахуємо кількість файлів
         oneProcessNum = fileNum / threads_num # Розраховуємо скільки файлів має обробити один процес
-        # self.oneProcessTask(pathList)
-        for i in range(threads_num):
+
+        processes_args = []
+        for i in range(threads_num): # Визначаємо які файли має обробити кожен з процесів
             startIndex = int(i * oneProcessNum)
             endIndex = int((i + 1) * oneProcessNum)
-            currLi = pathList[startIndex:endIndex]
+            processes_args.append((path, startIndex, endIndex))
 
-            p = mp.Process(target=self.oneProcessTask, args=(currLi, return_li)) # Даємо завдання кожному процесу
-            processes.append(p)
-
-        [x.start() for x in processes]
-        [x.join() for x in processes]
+        pool = mp.Pool(threads_num) # створюємо пул з необхідною к-стю порцесів
+        self.smallIndexes = pool.starmap(self.oneProcessTask, processes_args)
+        self.mergeIndex()
 
     @staticmethod
-    def oneProcessTask(listOfDoc):
-        #print(f'Start: {list[0]}, end: {list[-1]}') # temp
+    def oneProcessTask(path, startIndex, endIndex):
+        pathList = list(Path(path).glob('**/*.txt'))
+        listOfDoc = pathList[startIndex:endIndex]
         tempDict = dict()
         for name in listOfDoc:
-            with open(name) as f:
+            with open(name, encoding='utf-8') as f:
                 text = f.read()
                 li = re.findall(r'\b\w+\b', text)
                 for w in li:
                     if tempDict.get(w) is None:
                         tempDict[w] = set()
                     tempDict[w].add(str(name))
+        return tempDict
 
     def getListOfDoc(self, keyWord):
         return self.index[keyWord]
+    
+    def mergeIndex(self):
+        if len(self.smallIndexes) == 1:
+            self.index = self.smallIndexes[0]
+            return
+        key = set()
+        for d in self.smallIndexes:
+            key |= set(d.keys())
+        for k in key:
+            self.index[k] = set()
+            for d in self.smallIndexes:
+                try:
+                    self.index[k] |= d[k]
+                except KeyError:
+                    pass
+        return
 
+        
 
 if __name__ == '__main__':
     ii = InvertedIndex()
     start_time = time.time()
     ii.createIndex()
     print("--- %s seconds ---" % (time.time() - start_time))
-    li = ii.getListOfDoc('rated')
-    print(li)
+    docs = ii.getListOfDoc('romantic')
+    print(docs)
