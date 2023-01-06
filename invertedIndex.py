@@ -5,22 +5,23 @@ import time
 
 
 class InvertedIndex:
-    def __init__(self):
+    def __init__(self, treads=4):
         self.smallIndexes = None
         self.index = dict()
+        self.threads = treads
 
-    def createIndex(self, path='data', threads_num=1):
+    def createIndex(self, path='data'):
         pathList = list(Path(path).glob('**/*.txt')) # Рекурсивно проходимо по всіх текстових файлах і робимо з них список
         fileNum = len(pathList) # Рахуємо кількість файлів
-        oneProcessNum = fileNum / threads_num # Розраховуємо скільки файлів має обробити один процес
+        oneProcessNum = fileNum / self.threads # Розраховуємо скільки файлів має обробити один процес
 
         processes_args = []
-        for i in range(threads_num): # Визначаємо які файли має обробити кожен з процесів
+        for i in range(self.threads): # Визначаємо які файли має обробити кожен з процесів
             startIndex = int(i * oneProcessNum)
             endIndex = int((i + 1) * oneProcessNum)
             processes_args.append((path, startIndex, endIndex))
 
-        pool = mp.Pool(threads_num) # створюємо пул з необхідною к-стю порцесів
+        pool = mp.Pool(self.threads) # створюємо пул з необхідною к-стю порцесів
         self.smallIndexes = pool.starmap(self.oneProcessTask, processes_args)
         self.mergeIndex()
 
@@ -57,13 +58,3 @@ class InvertedIndex:
                 except KeyError:
                     pass
         return
-
-        
-
-if __name__ == '__main__':
-    ii = InvertedIndex()
-    start_time = time.time()
-    ii.createIndex()
-    print("--- %s seconds ---" % (time.time() - start_time))
-    docs = ii.getListOfDoc('romantic')
-    print(docs)
