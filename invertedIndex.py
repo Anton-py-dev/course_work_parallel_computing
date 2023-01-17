@@ -5,13 +5,14 @@ import time
 
 
 class InvertedIndex:
-    def __init__(self, treads=4):
+    def __init__(self, treads=4, path='data'):
         self.smallIndexes = None
         self.index = dict()
         self.threads = treads
+        self.path = path
 
-    def createIndex(self, path='data'):
-        pathList = list(Path(path).glob('**/*.txt')) # Рекурсивно проходимо по всіх текстових файлах і робимо з них список
+    def createIndex(self):
+        pathList = list(Path(self.path).glob('**/*.txt')) # Рекурсивно проходимо по всіх текстових файлах і робимо з них список
         fileNum = len(pathList) # Рахуємо кількість файлів
         oneProcessNum = fileNum / self.threads # Розраховуємо скільки файлів має обробити один процес
 
@@ -19,7 +20,7 @@ class InvertedIndex:
         for i in range(self.threads): # Визначаємо які файли має обробити кожен з процесів
             startIndex = int(i * oneProcessNum)
             endIndex = int((i + 1) * oneProcessNum)
-            processes_args.append((path, startIndex, endIndex))
+            processes_args.append((self.path, startIndex, endIndex))
 
         pool = mp.Pool(self.threads) # створюємо пул з необхідною к-стю порцесів
         self.smallIndexes = pool.starmap(self.oneProcessTask, processes_args)
