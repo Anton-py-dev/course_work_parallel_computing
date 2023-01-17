@@ -7,4 +7,4 @@ if __name__ == '__main__':
     start_time = time.time()
     ii.createIndex()
     print("--- %s seconds ---" % (time.time() - start_time))
-    ii.getListOfDoc(str(input("Word to find: ")))
+    ii.printListOfDoc(ii.getListOfDoc(str(input("Word to find: "))))

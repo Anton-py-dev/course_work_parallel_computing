@@ -43,6 +43,13 @@ class InvertedIndex:
 
     def getListOfDoc(self, keyWord):
         return self.index[keyWord]
+
+    @staticmethod
+    def printListOfDoc(list):
+        i = 1
+        for doc in list:
+            print(f'{i}. \t{doc}')
+            i += 1
     
     def mergeIndex(self):
         if len(self.smallIndexes) == 1:
